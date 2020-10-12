@@ -5,8 +5,6 @@ class main:
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(pass_context=True)
-
     # log to console what user signed into
     async def on_ready(self):
         print(f'Logged on as {self.bot.user}')
@@ -16,5 +14,7 @@ class main:
         # Print messages seen by bot
         print(f'Message from {message.author}: {message.content}')
 
-        # check if user is bot
-
+    @commands.command(pass_context=True)
+    @commands.is_owner
+    async def load(self, ctx):
+        commands.Bot.load_extension(ctx.message.content[2:])

@@ -27,9 +27,12 @@ def send_email(esmtp: str, esend: str, erecv: str, esubj: str, epwrd: str, ebody
     server.sendmail(esend, erecv, txt)
 
 
+# Import discord.py library.
 from discord.ext import commands
-
+# Cog class for mail command.
 class mail_cmd(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
 
     @commands.command()
     async def mail(self, ctx):
