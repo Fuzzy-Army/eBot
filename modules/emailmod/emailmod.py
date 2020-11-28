@@ -1,23 +1,14 @@
+""" Extension for sending E-Mails. """
 # Import libs required for send_email function.
 import sys
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from discord.ext import commands
-from sqlalchemy import Column, Integer, String
-from modules.dbmod.base import Base
+from modules.dbmod.dblist import UserDtls, Email
 from modules.dbmod.dbmain import ormsession
+from modules.firstuse.firstuse import user_setup
 
-class Email(Base):
-    """ Define the E-Mail details table. """
-    __tablename__ = 'edtls'
-
-    usrid = Column(Integer, primary_key=True)
-    esmtp = Column(String)
-    eport = Column(Integer)
-    email = Column(String)
-    epwrd = Column(String)
- 
 async def send_email(esmtp: str, eport: int,
                      epwrd: str, esndr: str,
                      ercvr: str, esubj: str,
@@ -69,8 +60,10 @@ class Mailcmd(commands.Cog):
             ans = await self.bot.wait_for('message', check=pred)
             ans = ans.clean_content
             return ans
-            
-        print(ormsession.query(ormsession.query(Email).filter(Email.usrid == ctx.author.id).exists()).scalar())
+        user_exists = ormsession.query(ormsession.query(UserDtls).filter(UserDtls.usrid == ctx.author.id).exists()).scalar()
+        print(ormsession.query(ormsession.query(UserDtls).filter(UserDtls.usrid == ctx.author.id).exists()).scalar())
+        if not user_exists:
+            await user_setup(self, ctx)
         await ctx.channel.send("You are now running the E-Mail command, please follow the next instructions.")
         esmtp = await askfunc(self, ctx, '''What is the URL of the SMTP server that your E-Mail service provider provides?
         If you are not sure, please look online for your E-Mail provider SMTP settings.''')

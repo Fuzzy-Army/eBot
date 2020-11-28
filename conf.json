@@ -1,3 +1,5 @@
 {
-    "token": "NzA0MDU1OTcwMTUzNjI3NzIx.XqXlOA.OufkbmKF0F7qZ6J24c24McWuU4s"
+    "token": "NzA0MDU1OTcwMTUzNjI3NzIx.XqXlOA.OufkbmKF0F7qZ6J24c24McWuU4s",
+    "default_bot_imports": ["modules.emailsend"],
+    "default_py_imports": ["modules.emailsend.Email"]
 }
