@@ -1,5 +1,6 @@
 {
     "token": "NzA0MDU1OTcwMTUzNjI3NzIx.XqXlOA.OufkbmKF0F7qZ6J24c24McWuU4s",
+    "dPfx": "e.",
     "default_bot_imports": ["modules.emailsend"],
     "default_py_imports": ["modules.emailsend.Email"]
 }
