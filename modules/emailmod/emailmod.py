@@ -8,7 +8,7 @@ from discord.ext import commands
 import modules.dbmod.dbmain as db
 import modules.dbmod.dbutils as dbdo
 from modules.firstuse.firstuse import user_setup
-from botmain import askfunc
+from modules.utils.utils import askfunc
 
 async def send_email(esmtp: str, eport: int,
                      epwrd: str, esndr: str,
@@ -134,14 +134,15 @@ class Mailcmd(commands.Cog):
     async def mail(self, ctx):
         ''' Function for the mail command. '''
 
-        if not dbdo.checkexist(db.User, db.User.usrid, ctx.author.id):
+        if not await dbdo.checkexist(db.User, db.User.usrid, ctx.author.id):
             success = await user_setup(self, ctx)
             if not success:
                 return
         
         cmd = ctx.message.clean_content
+        cmd = cmd[7:]
 
-        if cmd[7:].lower() == 'linkaccount':
+        async def create(self, ctx):
             success = await link_account(self, ctx)
             if success == 1 or 2:
                 return
@@ -150,8 +151,8 @@ class Mailcmd(commands.Cog):
                 ctx.channel.send('Account linking setup cancelled successfully!')
                 return
 
-        elif cmd[7:].lower() == 'send':
-            if not dbdo.checkexist(db.Mail, db.Mail.usrid, ctx.author.id):
+        async def send(self, ctx):
+            if not await dbdo.checkexist(db.Mail, db.Mail.usrid, ctx.author.id):
                 ask = await askfunc(self, ctx, '''Hey there!
 It seems you have not set up an E-Mail account to use with this bot.
 Would you like to do so? (Yes/No)''')
@@ -170,14 +171,25 @@ Would you like to do so? (Yes/No)''')
 Command has been cancelled.''')
                     return
 
-            #find = select([users]).where(users.c.name == 'uwu')
-            #ertrn = await send_email(esmtp, eport, epwrd, esndr, ercvr, esubj, ebody)
-        else:
+        # If no argument, or argument does not match.
+        async def none(self, ctx):
             await ctx.channel.send('''Wrong command syntax!
 Command mail needs an argument.
 ``e.mail (argument_1)``
 argument_1: linkaccount | send''')
+
             return
+        
+        async def switch(option):
+            options = {
+                'create':   create,
+                'send':     send
+            }
+            return options.get(option, none)
+
+        argument = await switch(cmd)
+        await argument(self, ctx)
+
 
 def setup(bot):
     """ Add mail_cog cog to bot. """

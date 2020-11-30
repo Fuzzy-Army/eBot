@@ -12,4 +12,4 @@ async def checkexist(intable, incolumn, thisvalue):
     """ Checks if row in {incolumn} 
     exists with {thisvalue} in {intable},
     returning a True/False value"""
-    return db.ormsession.query(db.ormsession.query(intable).filter(incolumn == thisvalue).exists()).scalar()
+    return db.orm.query(db.orm.query(intable).filter(incolumn == thisvalue).exists()).scalar()

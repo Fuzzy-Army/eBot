@@ -1,7 +1,6 @@
 """ The mitochondria is the powerhouse of the cell...
 Defines tables along with the ORM and the SQL core of SQLAlchemy """
 from sqlalchemy import create_engine,  String, BigInteger, Integer, Column, ForeignKey, Table, MetaData
-from sqlalchemy.sql import select
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -13,7 +12,7 @@ class User(Base):
     usrid = Column(BigInteger, primary_key=True, index=True)
     alias = Column(String)
     nouns = Column(Integer)
-    email = relationship("Email")
+    email = relationship("Mail")
 
 class Mail(Base):
     """ Defines the E-Mail details table. """
@@ -64,11 +63,15 @@ wordgen     = Table('wordgen', metadata,
                     Column('mediumword', String),
                     Column('shortword', String))
 
+# Define engine with database connection.
 dbengine = create_engine('postgresql://dev-wolf:cute-dev-wolf@localhost:62100/uwu', echo=True)
 
+# Create all defined tables if not exist.
 Base.metadata.create_all(dbengine, checkfirst=True)
 
+# Initialize ORM instance.
 session_init = sessionmaker(bind=dbengine)
 orm = session_init()
 
+# Initialize engine connection.
 dbconnect = dbengine.connect()
