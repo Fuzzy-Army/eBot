@@ -5,10 +5,10 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from discord.ext import commands
-from modules.dbmod.dblist import UsrPrefs, Email, SrvPrefs
-from modules.dbmod.dbmain import ormsession
+import modules.dbmod.dbmain as db
+import modules.dbmod.dbutils as dbdo
 from modules.firstuse.firstuse import user_setup
-from sqlalchemy.sql import select
+from botmain import askfunc
 
 async def send_email(esmtp: str, eport: int,
                      epwrd: str, esndr: str,
@@ -43,7 +43,7 @@ async def send_email(esmtp: str, eport: int,
         Error details: {sys.exc_info()}"""
         return error
 
-async def link_account(self, ctx, askfunc):
+async def link_account(self, ctx):
     """ Function called when user wants to link E-Mail account. """
     await ctx.channel.send('''You are now running the account linking command.
 
@@ -107,11 +107,11 @@ Is this correct? (Yes/No)''')
         await ctx.channel.send('''E-Mail linked successfully!
 To keep you secure, please delete your messages that contain sensitive details in case your account gets compromised.''')
 
-        edb = Email(ename=ename, esmtp=esmtp,
+        edb = db.Mail(ename=ename, esmtp=esmtp,
                     eport=eport, email=email,
                     epwrd=epwrd, usrid=ctx.author.id)
-        ormsession.add(edb)
-        ormsession.commit()
+        db.ormsession.add(edb)
+        db.ormsession.commit()
         return 1
 
     except:
@@ -134,21 +134,7 @@ class Mailcmd(commands.Cog):
     async def mail(self, ctx):
         ''' Function for the mail command. '''
 
-        async def askfunc(self, ctx, cont):
-            """ Function to minimize code size, is in charge
-            of sending messages, awaiting for the response
-            and returning its value """
-
-            await ctx.channel.send(cont)
-            def pred(original):
-                return original.author == ctx.author and original.channel == ctx.channel
-            ans = await self.bot.wait_for('message', check=pred)
-            ans = ans.clean_content
-            return ans
-
-        user_exists = ormsession.query(ormsession.query(UsrPrefs).filter(UsrPrefs.usrid == ctx.author.id).exists()).scalar()
-
-        if not user_exists:
+        if not dbdo.checkexist(db.User, db.User.usrid, ctx.author.id):
             success = await user_setup(self, ctx)
             if not success:
                 return
@@ -156,7 +142,7 @@ class Mailcmd(commands.Cog):
         cmd = ctx.message.clean_content
 
         if cmd[7:].lower() == 'linkaccount':
-            success = await link_account(self, ctx, askfunc)
+            success = await link_account(self, ctx)
             if success == 1 or 2:
                 return
 
@@ -165,15 +151,13 @@ class Mailcmd(commands.Cog):
                 return
 
         elif cmd[7:].lower() == 'send':
-            user_exists = ormsession.query(ormsession.query(Email).filter(Email.usrid == ctx.author.id).exists()).scalar()
-
-            if not user_exists:
+            if not dbdo.checkexist(db.Mail, db.Mail.usrid, ctx.author.id):
                 ask = await askfunc(self, ctx, '''Hey there!
 It seems you have not set up an E-Mail account to use with this bot.
 Would you like to do so? (Yes/No)''')
 
                 if ask.lower() == 'yes':
-                    success = await link_account(self, ctx, askfunc)
+                    success = await link_account(self, ctx)
                     if success == 2:
                         return
 
