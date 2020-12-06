@@ -6,9 +6,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from discord.ext import commands
 import modules.dbmod.dbmain as db
-import modules.dbmod.dbutils as dbdo
 from modules.firstuse.firstuse import user_setup
-from modules.utils.utils import askfunc
+from modules.utils.utils import ask, checkexist, findinquery
 
 async def send_email(esmtp: str, eport: int,
                      epwrd: str, esndr: str,
@@ -43,6 +42,8 @@ async def send_email(esmtp: str, eport: int,
         Error details: {sys.exc_info()}"""
         return error
 
+
+
 async def link_account(self, ctx):
     """ Function called when user wants to link E-Mail account. """
     await ctx.channel.send('''You are now running the account linking command.
@@ -54,37 +55,39 @@ We will need the following details to link your account, if your provider has on
     loop = True
     while loop:
 
-        email = await askfunc(self, ctx, "Please enter the E-Mail address you'd like to link.")
-        if email.lower() == 'cancel':
+        email, cancelled = await ask(self, ctx, "Please enter the E-Mail address you'd like to link.", True)
+        if cancelled:
             return 3
 
-        epwrd = await askfunc(self, ctx, "Please enter the E-Mail account password.")
-        if epwrd.lower() == 'cancel':
-            await ctx.channel.send('Command cancelled successfully!')
+        epwrd, cancelled = await ask(self, ctx, "Please enter the E-Mail account password.", True)
+        if cancelled:
             return 3
 
-        esmtp = await askfunc(self, ctx, "Please enter the E-Mail provider's SMTP server URL.")
+        esmtp, cancelled = await ask(self, ctx, "Please enter the E-Mail provider's SMTP server URL.", True)
         if esmtp.lower() == 'smtp.office365.com':
             await ctx.channel.send("We're sorry, due to Microsoft's E-Mail policies, we don't yet support linking Microsoft E-Mail accounts. This might be due to change in the future, but as of now, we don't have plans to add support for it.")
             return 2
-        elif esmtp.lower() == 'cancel':
+        if cancelled:
             return 3
 
-        eport = await askfunc(self, ctx, "Please enter the E-Mail provider's SMTP server port.")
-        if eport.lower() == 'cancel':
+        eport, cancelled = await ask(self, ctx, "Please enter the E-Mail provider's SMTP server port.", True)
+        if cancelled:
             return 3
     
-        ename = await askfunc(self, ctx, 'What would you like to name this preset?')
-        if ename.lower() == 'cancel':
+        ename, cancelled = await ask(self, ctx, 'What would you like to name this preset?', True)
+        if cancelled:
             return 3
 
-        confirmed = await askfunc(self, ctx, f'''Please verify these details are correct.
+        confirmed, cancelled = await ask(self, ctx, f'''Please verify these details are correct.
 E-Mail preset name: {ename}
 E-Mail address: {email}
 E-Mail password: {epwrd}
 SMTP server URL: {esmtp}
 SMTP server port: {eport}
-Is this correct? (Yes/No)''')
+Is this correct? (Yes/No)''', True)
+
+        if cancelled:
+            return 3
 
         if confirmed.lower() == 'yes':
             loop = False
@@ -92,10 +95,8 @@ Is this correct? (Yes/No)''')
         elif confirmed.lower() == 'no':
             await ctx.channel.send("Account linking setup restarted!")
         
-        elif confirmed.lower() == 'cancel':
-            return 3
 
-    await ctx.channel.send("Plese hold on while I attempt to log into your account to verify the given credentials are correct.")
+    await ctx.channel.send("Please hold on while I attempt to log into your account to verify the given credentials are correct.")
     try:
         server = smtplib.SMTP(esmtp, eport)
         server.starttls()
@@ -110,8 +111,8 @@ To keep you secure, please delete your messages that contain sensitive details i
         edb = db.Mail(ename=ename, esmtp=esmtp,
                     eport=eport, email=email,
                     epwrd=epwrd, usrid=ctx.author.id)
-        db.ormsession.add(edb)
-        db.ormsession.commit()
+        db.orm.add(edb)
+        db.orm.commit()
         return 1
 
     except:
@@ -134,7 +135,7 @@ class Mailcmd(commands.Cog):
     async def mail(self, ctx):
         ''' Function for the mail command. '''
 
-        if not await dbdo.checkexist(db.User, db.User.usrid, ctx.author.id):
+        if not await checkexist(db.User, db.User.usrid, ctx.author.id):
             success = await user_setup(self, ctx)
             if not success:
                 return
@@ -152,31 +153,39 @@ class Mailcmd(commands.Cog):
                 return
 
         async def send(self, ctx):
-            if not await dbdo.checkexist(db.Mail, db.Mail.usrid, ctx.author.id):
-                ask = await askfunc(self, ctx, '''Hey there!
+            if not await checkexist(db.Mail, db.Mail.usrid, ctx.author.id):
+                askusr = await ask(self, ctx, '''Hey there!
 It seems you have not set up an E-Mail account to use with this bot.
-Would you like to do so? (Yes/No)''')
+Would you like to do so? (Yes/No)''', False)
+                
+                loop = True
+                while loop:
+                    if askusr.lower() == 'yes':
+                        success = await link_account(self, ctx)
+                        if success == 2:
+                            return
+                        elif success == 3:
+                            await ctx.channel.send('Account linking setup cancelled successfully!')
+                            return
+                        loop = False
 
-                if ask.lower() == 'yes':
-                    success = await link_account(self, ctx)
-                    if success == 2:
+                    elif askusr.lower() == 'no':
                         return
 
-                    elif success == 3:
-                        await ctx.channel.send('Account linking setup cancelled successfully!')
-                        return
+                    else:
+                        askusr = await ask(self, ctx, 'You entered a wrong value, please retry!', False)
 
-                elif ask.lower() == 'no':
-                    await ctx.channel.send('''E-Mail sending cannot proceed without a linked account.
-Command has been cancelled.''')
-                    return
+            column = [db.edtls.c.usrid, db.edtls.c.ename]
+            e = await findinquery(column, db.edtls.c.usrid, ctx.author.id)
+            for row in e:
+                print(row)
 
         # If no argument, or argument does not match.
         async def none(self, ctx):
             await ctx.channel.send('''Wrong command syntax!
 Command mail needs an argument.
-``e.mail (argument_1)``
-argument_1: linkaccount | send''')
+`e.mail (action)`
+Valid actions: linkaccount | send''')
 
             return
         

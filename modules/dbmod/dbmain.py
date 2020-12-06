@@ -46,6 +46,7 @@ usrprefs    = Table('usrprefs', metadata,
                     Column('usrid', BigInteger, primary_key=True, index=True),
                     Column('alias', String),
                     Column('nouns', Integer))
+
 edtls       = Table('edtls', metadata,
                     Column('eid', Integer, primary_key=True),
                     Column('ename', String),
@@ -54,9 +55,11 @@ edtls       = Table('edtls', metadata,
                     Column('email', String),
                     Column('epwrd', String),
                     Column('usrid', BigInteger, ForeignKey('usrprefs.usrid'), index=True))
+
 srvprefs    = Table('srvprefs', metadata,
                     Column('srvid', BigInteger, primary_key=True, index=True),
                     Column('prefix', String))
+
 wordgen     = Table('wordgen', metadata,
                     Column('wordID', Integer, primary_key=True, index=True),
                     Column('longword', String),
@@ -64,7 +67,7 @@ wordgen     = Table('wordgen', metadata,
                     Column('shortword', String))
 
 # Define engine with database connection.
-dbengine = create_engine('postgresql://dev-wolf:cute-dev-wolf@localhost:62100/uwu', echo=True)
+dbengine = create_engine('postgresql://dev-wolf:cute-dev-wolf@localhost:62100/uwu')
 
 # Create all defined tables if not exist.
 Base.metadata.create_all(dbengine, checkfirst=True)

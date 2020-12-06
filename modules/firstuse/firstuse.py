@@ -1,12 +1,12 @@
 """ Is ran when a user uses the bot for the first time or when the bot is added to a new server. """
 import modules.dbmod.dbmain as db
-from modules.utils.utils import askfunc as ask
+from modules.utils.utils import ask
 
 async def user_setup(self, ctx):
-    confirm, cancel = await ask(self, ctx, '''Hi there!
+    confirm = await ask(self, ctx, '''Hi there!
 Before using me, we need to set up your preferences.
 Would you like to set up your preferences? (Yes/No)
-''')
+''', False)
     if confirm.lower() == 'yes':
         await ctx.channel.send('''First use setup started!
 Use ``cancel`` anytime to cancel this setup.''')
@@ -20,7 +20,7 @@ Use ``cancel`` anytime to cancel this setup.''')
                 usrid = ctx.author.id
 
                 # Ask user for preferred name.
-                alias, cancelled = await ask(self, ctx, '''What name do you want me to call you?''')
+                alias, cancelled = await ask(self, ctx, '''What name do you want me to call you?''', True)
 
                 # If ask() returned True on cancelled, return.
                 if cancelled:
@@ -45,7 +45,7 @@ Use ``cancel`` anytime to cancel this setup.''')
                 nouns, cancelled = await ask(self, ctx, '''What pronouns would you like me to use?
 1. He/Him
 2. She/Her
-3. They/Them''')
+3. They/Them''', True)
 
                 # If ask() returned True on cancelled, return.
                 if cancelled:
@@ -57,56 +57,44 @@ Use ``cancel`` anytime to cancel this setup.''')
 
                 # Loops until user provides a valid answer.
                 while loop2:
-                    nouns, cancelled = await ask(self, ctx, 'You entered a wrong value, please retry!')
+                    nouns, cancelled = await ask(self, ctx, 'You entered a wrong value, please retry!', True)
                     pnoun, loop2 = determine_noun(nouns)
                     # If ask() returned True on cancelled, return.
                     if cancelled:
                         return
-
-                # Switch case to determine if
-                # user provided valid value and
-                # if user needs to start again.
-                async def determine_confirm(confirm):
-                    # If user says yes, return True, if no, return False
-                    switchx = {
-                        'yes':      True,
-                        'no':       False
-                    }
-                    # If message matches these, return False, if not, return True
-                    switchy = {
-                        'yes':      False,
-                        'no':       False
-                    }
-                    return switchx.get(confirm), switchy.get(confirm, True)
                 
                 # Ask user for confirmation on provided details.
                 confirm, cancelled = await ask(self, ctx, f'''I will now call you {alias} and use {pnoun} when referring to you. 
-Is that correct? (Yes/No)''')
+Is that correct? (Yes/No)''', True)
 
-                # If ask() returned True on cancelled, return.
-                if cancelled:
-                    return
-
-                # Determine if valid user
-                # response and convert to boolean.
-                confirm, loop2 = await determine_confirm(confirm.lower())
-
-                # Loops until user provides a valid answer.
+                loop2 = True
                 while loop2:
-                    confirm, cancelled = await ask(self, ctx, 'You entered a wrong value, please retry!')
                     # If ask() returned True on cancelled, return.
                     if cancelled:
                         return
-                    confirm, loop2 = await determine_confirm(confirm.lower())
+
+                    if confirm.lower() == 'no':
+                        await ctx.channel.send('First use setup restarted successfully!')
+                        loop = True
+                        loop2 = False
+
+                    elif confirm.lower() == 'yes':
+                        loop    = False
+                        loop2   = False
+
+                    else:
+                        confirm, cancelled = await ask(self, ctx, 'You entered a wrong value, please retry!', True)
+                        if cancelled:
+                            return
 
                 # Add user details to database.
-                user = db.User(usrid=usrid, 
-                               alias=alias,
-                               nouns= nouns)
-                db.orm.add(user)
-                db.orm.commit()
+            user = db.User(usrid=usrid, 
+                           alias=alias,
+                           nouns= nouns)
+            db.orm.add(user)
+            db.orm.commit()
 
-                return True
+            return True
 
         confirm = await askdtls(self, ctx)
 
