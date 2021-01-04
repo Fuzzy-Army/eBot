@@ -7,7 +7,7 @@ from email.mime.multipart import MIMEMultipart
 from discord.ext import commands
 import modules.dbmod.dbmain as db
 from modules.firstuse.firstuse import user_setup
-from modules.utils.utils import ask, checkexist, findinquery
+from modules.utils.utils import ask, checkexist, selectwhere
 
 async def send_email(esmtp: str, eport: int,
                      epwrd: str, esndr: str,
@@ -176,7 +176,7 @@ Would you like to do so? (Yes/No)''', False)
                         askusr = await ask(self, ctx, 'You entered a wrong value, please retry!', False)
 
             column = [db.edtls.c.usrid, db.edtls.c.ename]
-            e = await findinquery(column, db.edtls.c.usrid, ctx.author.id)
+            e = await selectwhere(column, db.edtls.c.usrid, ctx.author.id)
             for row in e:
                 print(row)
 

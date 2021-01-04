@@ -24,7 +24,7 @@ async def ask(self, ctx, cont, cancellable):
 
     return ans
 
-async def findinquery(intable, incolumn, thisvalue):
+async def selectwhere(intable, incolumn, thisvalue):
     """ Executes a select statement, 
     returning a whole row in {intable} 
     with {thisvalue} in {incolumn}"""
